@@ -34,30 +34,102 @@ function useChart() {
   return context;
 }
 
+/** Returns the CSS variable for a config key, e.g. getChartColor("desktop") */
+function getChartColor(key: string) {
+  return `var(--color-${sanitizeKey(key)})`;
+}
+
+/** Hide/show series from the legend. Pass `hide={isHidden(key)}` to a series. */
+function useChartSeriesToggle(initialHidden: string[] = []) {
+  const [hidden, setHidden] = React.useState<string[]>(initialHidden);
+
+  const toggle = React.useCallback((key: string) => {
+    setHidden((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
+  }, []);
+
+  const isHidden = React.useCallback(
+    (key: string) => hidden.includes(key),
+    [hidden],
+  );
+
+  const reset = React.useCallback(() => setHidden([]), []);
+
+  return { hidden, toggle, isHidden, reset };
+}
+
 function ChartContainer({
   id,
   className,
   children,
   config,
+  title,
+  description,
+  loading = false,
+  empty = false,
   ...props
 }: React.ComponentProps<"div"> & {
   config: ChartConfig;
   children: React.ComponentProps<
     typeof RechartsPrimitive.ResponsiveContainer
   >["children"];
+  /** Accessible chart title */
+  title?: string;
+  /** Accessible chart description */
+  description?: string;
+  /** Show a skeleton instead of the chart */
+  loading?: boolean;
+  /** true shows a default message; pass a node to customize */
+  empty?: boolean | React.ReactNode;
 }) {
   const uniqueId = React.useId();
   const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
+
+  const baseClassName = cn(
+    "[&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border flex aspect-video justify-center text-xs [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden",
+    className,
+  );
+
+  if (loading) {
+    return (
+      <div
+        data-slot="chart"
+        data-state="loading"
+        aria-busy="true"
+        aria-label={title ? `${title} (loading)` : "Loading chart"}
+        className={cn("flex aspect-video", className)}
+        {...props}
+      >
+        <div className="bg-muted size-full animate-pulse rounded-lg" />
+      </div>
+    );
+  }
+
+  if (empty) {
+    return (
+      <div
+        data-slot="chart"
+        data-state="empty"
+        className={cn(
+          "text-muted-foreground flex aspect-video items-center justify-center text-sm",
+          className,
+        )}
+        {...props}
+      >
+        {empty === true ? "No data to display" : empty}
+      </div>
+    );
+  }
 
   return (
     <ChartContext.Provider value={{ config }}>
       <div
         data-slot="chart"
         data-chart={chartId}
-        className={cn(
-          "[&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border flex aspect-video justify-center text-xs [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden",
-          className,
-        )}
+        role="img"
+        aria-label={[title, description].filter(Boolean).join(". ") || undefined}
+        className={baseClassName}
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
@@ -69,6 +141,16 @@ function ChartContainer({
   );
 }
 
+// Keys and colors end up inside a <style> tag, so keep them to safe characters.
+function sanitizeKey(key: string) {
+  return key.replace(/[^a-zA-Z0-9_-]/g, "-");
+}
+
+function sanitizeColor(color: string | undefined) {
+  if (!color) return null;
+  return /^[#a-zA-Z0-9(),.%\s/_-]+$/.test(color) ? color : null;
+}
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
     ([, config]) => config.theme || config.color,
@@ -78,20 +160,24 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null;
   }
 
+  const safeId = id.replace(/[^a-zA-Z0-9_-]/g, "");
+
   return (
     <style
       dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)
           .map(
             ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
+${prefix} [data-chart=${safeId}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
-    const color =
+    const color = sanitizeColor(
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
+        itemConfig.color,
+    );
+    return color ? `  --color-${sanitizeKey(key)}: ${color};` : null;
   })
+  .filter(Boolean)
   .join("\n")}
 }
 `,
@@ -118,6 +204,9 @@ function ChartTooltipContent({
   color,
   nameKey,
   labelKey,
+  valueFormatter,
+  unit,
+  showTotal = false,
 }: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
   React.ComponentProps<"div"> & {
     hideLabel?: boolean;
@@ -125,6 +214,12 @@ function ChartTooltipContent({
     indicator?: "line" | "dot" | "dashed";
     nameKey?: string;
     labelKey?: string;
+    /** Custom value rendering, e.g. (v) => `$${v}` */
+    valueFormatter?: (value: number | string, name: string) => React.ReactNode;
+    /** Appended after numeric values, e.g. "%" or "ms" */
+    unit?: string;
+    /** Show a summed total row when there are multiple numeric series */
+    showTotal?: boolean;
   }) {
   const { config } = useChart();
 
@@ -170,6 +265,24 @@ function ChartTooltipContent({
 
   const nestLabel = payload.length === 1 && indicator !== "dot";
 
+  const renderValue = (value: unknown, name: string) => {
+    if (valueFormatter && (typeof value === "number" || typeof value === "string")) {
+      return valueFormatter(value, name);
+    }
+    if (typeof value === "number") {
+      return `${value.toLocaleString()}${unit ? ` ${unit}` : ""}`;
+    }
+    return `${value}${unit ? ` ${unit}` : ""}`;
+  };
+
+  const numericValues = payload
+    .map((p) => p.value)
+    .filter((v): v is number => typeof v === "number");
+  const total =
+    showTotal && numericValues.length > 1
+      ? numericValues.reduce((a, b) => a + b, 0)
+      : null;
+
   return (
     <div
       className={cn(
@@ -182,18 +295,19 @@ function ChartTooltipContent({
         {payload.map((item, index) => {
           const key = `${nameKey || item.name || item.dataKey || "value"}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
-          const indicatorColor = color || item.payload.fill || item.color;
+          const indicatorColor = color || item.payload?.fill || item.color;
+          const hasValue = item.value !== undefined && item.value !== null;
 
           return (
             <div
-              key={item.dataKey}
+              key={`${item.dataKey ?? item.name ?? "item"}-${index}`}
               className={cn(
                 "[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5",
                 indicator === "dot" && "items-center",
               )}
             >
-              {formatter && item?.value !== undefined && item.name ? (
-                formatter(item.value, item.name, item, index, item.payload)
+              {formatter && hasValue && item.name ? (
+                formatter(item.value as never, item.name, item, index, item.payload)
               ) : (
                 <>
                   {itemConfig?.icon ? (
@@ -232,9 +346,9 @@ function ChartTooltipContent({
                         {itemConfig?.label || item.name}
                       </span>
                     </div>
-                    {item.value && (
+                    {hasValue && (
                       <span className="text-foreground font-mono font-medium tabular-nums">
-                        {item.value.toLocaleString()}
+                        {renderValue(item.value, String(item.name ?? key))}
                       </span>
                     )}
                   </div>
@@ -243,6 +357,14 @@ function ChartTooltipContent({
             </div>
           );
         })}
+        {total !== null && (
+          <div className="border-border/50 mt-0.5 flex items-center justify-between border-t pt-1.5 leading-none">
+            <span className="text-muted-foreground">Total</span>
+            <span className="text-foreground font-mono font-medium tabular-nums">
+              {renderValue(total, "total")}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -256,10 +378,16 @@ function ChartLegendContent({
   payload,
   verticalAlign = "bottom",
   nameKey,
+  hiddenKeys,
+  onToggle,
 }: React.ComponentProps<"div"> &
   Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
     hideIcon?: boolean;
     nameKey?: string;
+    /** Keys currently hidden (from useChartSeriesToggle) */
+    hiddenKeys?: string[];
+    /** When provided, legend items become toggle buttons */
+    onToggle?: (key: string) => void;
   }) {
   const { config } = useChart();
 
@@ -270,7 +398,7 @@ function ChartLegendContent({
   return (
     <div
       className={cn(
-        "flex items-center justify-center gap-4",
+        "flex flex-wrap items-center justify-center gap-4",
         verticalAlign === "top" ? "pb-3" : "pt-3",
         className,
       )}
@@ -278,25 +406,44 @@ function ChartLegendContent({
       {payload.map((item) => {
         const key = `${nameKey || item.dataKey || "value"}`;
         const itemConfig = getPayloadConfigFromPayload(config, item, key);
+        const dataKey = String(item.dataKey ?? key);
+        const isHidden = hiddenKeys?.includes(dataKey) ?? false;
 
-        return (
-          <div
-            key={item.value}
-            className={cn(
-              "[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3",
-            )}
-          >
+        const content = (
+          <>
             {itemConfig?.icon && !hideIcon ? (
               <itemConfig.icon />
             ) : (
               <div
                 className="h-2 w-2 shrink-0 rounded-[2px]"
-                style={{
-                  backgroundColor: item.color,
-                }}
+                style={{ backgroundColor: item.color }}
               />
             )}
-            {itemConfig?.label}
+            {itemConfig?.label ?? item.value}
+          </>
+        );
+
+        const itemClass = cn(
+          "[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3",
+          isHidden && "opacity-40 line-through",
+        );
+
+        return onToggle ? (
+          <button
+            key={String(item.value)}
+            type="button"
+            aria-pressed={!isHidden}
+            onClick={() => onToggle(dataKey)}
+            className={cn(
+              itemClass,
+              "hover:text-foreground cursor-pointer rounded-sm transition-opacity focus-visible:ring-2 focus-visible:outline-none",
+            )}
+          >
+            {content}
+          </button>
+        ) : (
+          <div key={String(item.value)} className={itemClass}>
+            {content}
           </div>
         );
       })}
@@ -350,4 +497,6 @@ export {
   ChartLegend,
   ChartLegendContent,
   ChartStyle,
+  useChartSeriesToggle,
+  getChartColor,
 };
