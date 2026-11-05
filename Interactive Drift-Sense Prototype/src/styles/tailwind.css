@@ -1,4 +1,4 @@
-@import 'tailwindcss' source(none);
-@source '../**/*.{js,ts,jsx,tsx}';
-
-@import 'tw-animate-css';
+/* src/styles/index.css */
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';   /* the cyan theme file I sent */
