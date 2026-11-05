@@ -1,48 +1,43 @@
-"use client";
+// Original usage, unchanged
+<Popover>
+  <PopoverTrigger asChild>
+    <Button variant="outline">Open</Button>
+  </PopoverTrigger>
+  <PopoverContent>Place content here.</PopoverContent>
+</Popover>
 
-import * as React from "react";
-import * as PopoverPrimitive from "@radix-ui/react-popover";
+// Structured content with an arrow and a close button
+<Popover>
+  <PopoverTrigger asChild>
+    <Button variant="outline">Dimensions</Button>
+  </PopoverTrigger>
+  <PopoverContent size="lg" showArrow showCloseButton>
+    <PopoverHeader>
+      <PopoverTitle>Dimensions</PopoverTitle>
+      <PopoverDescription>Set the size of the layer.</PopoverDescription>
+    </PopoverHeader>
+    {/* fields */}
+    <PopoverFooter>
+      <PopoverClose asChild>
+        <Button size="sm">Done</Button>
+      </PopoverClose>
+    </PopoverFooter>
+  </PopoverContent>
+</Popover>
 
-import { cn } from "./utils";
+// Async confirm
+<ConfirmPopover
+  destructive
+  title="Delete this file?"
+  description="This can't be undone."
+  confirmLabel="Delete"
+  onConfirm={() => deleteFile(file.id)}
+  onError={() => toast.error("Couldn't delete the file")}
+>
+  <Button variant="destructive" size="sm">Delete</Button>
+</ConfirmPopover>
 
-function Popover({
-  ...props
-}: React.ComponentProps<typeof PopoverPrimitive.Root>) {
-  return <PopoverPrimitive.Root data-slot="popover" {...props} />;
-}
+// Controlled
+const { popoverProps, hide } = usePopover();
 
-function PopoverTrigger({
-  ...props
-}: React.ComponentProps<typeof PopoverPrimitive.Trigger>) {
-  return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />;
-}
-
-function PopoverContent({
-  className,
-  align = "center",
-  sideOffset = 4,
-  ...props
-}: React.ComponentProps<typeof PopoverPrimitive.Content>) {
-  return (
-    <PopoverPrimitive.Portal>
-      <PopoverPrimitive.Content
-        data-slot="popover-content"
-        align={align}
-        sideOffset={sideOffset}
-        className={cn(
-          "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-72 origin-(--radix-popover-content-transform-origin) rounded-md border p-4 shadow-md outline-hidden",
-          className,
-        )}
-        {...props}
-      />
-    </PopoverPrimitive.Portal>
-  );
-}
-
-function PopoverAnchor({
-  ...props
-}: React.ComponentProps<typeof PopoverPrimitive.Anchor>) {
-  return <PopoverPrimitive.Anchor data-slot="popover-anchor" {...props} />;
-}
-
-export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor };
+<Popover {...popoverProps}>...</Popover>
