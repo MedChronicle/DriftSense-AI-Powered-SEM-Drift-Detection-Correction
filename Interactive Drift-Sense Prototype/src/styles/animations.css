@@ -1,0 +1,80 @@
+/* Drift-Sense animations: usable as Tailwind classes, e.g. class="animate-scan" */
+
+@theme {
+  --animate-scan: scan 3s linear infinite;
+  --animate-pulse-ring: pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-fade-in-up: fade-in-up 0.4s ease-out both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-blink: blink 1s steps(2, start) infinite;
+  --animate-glow-pulse: glow-pulse 2.4s ease-in-out infinite;
+
+  /* Vertical sweep, like an electron-beam scan line across the image */
+  @keyframes scan {
+    0%   { transform: translateY(-100%); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { transform: translateY(100%); opacity: 0; }
+  }
+
+  /* Expanding ring for drift markers / detected features */
+  @keyframes pulse-ring {
+    0%   { transform: scale(0.8); opacity: 0.8; }
+    80%, 100% { transform: scale(2.2); opacity: 0; }
+  }
+
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Loading skeleton sheen */
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to   { background-position: 200% 0; }
+  }
+
+  @keyframes blink {
+    to { visibility: hidden; }
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(0, 212, 255, 0.25); }
+    50%      { box-shadow: 0 0 18px rgba(0, 212, 255, 0.55); }
+  }
+}
+
+/* Skeleton loader: <div class="skeleton h-4 w-32" /> */
+@utility skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    rgba(0, 212, 255, 0.08) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+  border-radius: var(--radius-md);
+}
+
+/* Glass panel for overlays on top of images */
+@utility glass {
+  background: rgba(13, 21, 32, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+}
+
+/* Corner-bracket frame, instrument-style: <div class="frame-corners"> */
+@utility frame-corners {
+  position: relative;
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--primary);
+    pointer-events: none;
+  }
+  &::before { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+  &::after  { bottom: 0; right: 0; border-left: 0; border-top: 0; }
+}
