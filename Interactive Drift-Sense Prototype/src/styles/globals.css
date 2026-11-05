@@ -1,0 +1,207 @@
+/* Global rules for Drift-Sense.
+   Colors/tokens live in theme.css; keyframes live in animations.css.
+   Keep this file for app-wide element defaults only. */
+
+@layer base {
+  /* ---------- Layout & document ---------- */
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 4rem;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    overscroll-behavior-y: none;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Respect notches / home indicators */
+  #root {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* ---------- Text elements ---------- */
+  p {
+    line-height: 1.6;
+    text-wrap: pretty;
+  }
+
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+  }
+
+  a {
+    color: var(--primary);
+    text-underline-offset: 3px;
+    transition: opacity 0.15s ease;
+  }
+  a:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+  }
+
+  strong, b { font-weight: 600; }
+
+  small { font-size: var(--text-sm); color: var(--muted-foreground); }
+
+  hr {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin-block: 1.5rem;
+  }
+
+  code, kbd, samp, pre {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+
+  :not(pre) > code {
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.1em 0.4em;
+  }
+
+  pre {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    overflow-x: auto;
+  }
+
+  kbd {
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: var(--radius-sm);
+    padding: 0.1em 0.45em;
+  }
+
+  /* ---------- Media ---------- */
+  img, video, canvas, svg {
+    max-width: 100%;
+  }
+
+  /* Pixel-accurate rendering for SEM / wafer images */
+  img.pixelated,
+  canvas.pixelated {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  img { user-select: none; -webkit-user-drag: none; }
+
+  /* ---------- Tables ---------- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+  th { text-align: left; color: var(--muted-foreground); font-weight: var(--font-weight-medium); }
+  th, td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+
+  /* ---------- Forms ---------- */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  select {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--muted-foreground);
+    opacity: 1;
+  }
+
+  /* Hide number spinners; numeric readouts look cleaner */
+  input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  /* Stop the browser's white/yellow autofill background on dark inputs */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--foreground);
+    -webkit-box-shadow: 0 0 0 1000px var(--input-background) inset;
+    caret-color: var(--foreground);
+    transition: background-color 9999s ease-out;
+  }
+
+  /* ---------- Modals: stop background scroll jump ---------- */
+  body[data-scroll-locked] { overflow: hidden; }
+
+  /* ---------- View transitions (supported browsers) ---------- */
+  @supports (view-transition-name: none) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation-duration: 0.2s;
+    }
+  }
+}
+
+/* ---------- Utilities ---------- */
+
+/* Safe-area padding: class="pb-safe" */
+@utility pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+@utility pt-safe { padding-top: env(safe-area-inset-top); }
+
+/* Hide scrollbar but keep scrolling */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+/* Block text selection on interactive canvases / drag surfaces */
+@utility no-select {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Full-viewport app shell that respects mobile browser chrome */
+@utility h-screen-safe { height: 100dvh; }
+
+/* ---------- Accessibility ---------- */
+@media (forced-colors: active) {
+  :focus-visible { outline: 2px solid Highlight; }
+  .glow-primary, .text-glow { box-shadow: none; text-shadow: none; }
+}
+
+@media (prefers-contrast: more) {
+  :root, .dark {
+    --border: rgba(0, 212, 255, 0.35);
+    --muted-foreground: #94a3b8;
+  }
+}
+
+/* ---------- Print ---------- */
+@media print {
+  :root, .dark {
+    --background: #ffffff;
+    --foreground: #000000;
+    --card: #ffffff;
+    --border: #cccccc;
+  }
+  body { background: #fff; color: #000; }
+  .no-print { display: none !important; }
+  a { color: inherit; text-decoration: underline; }
+}
