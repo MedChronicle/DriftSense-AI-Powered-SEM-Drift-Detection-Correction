@@ -1,22 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
-  <!DOCTYPE html>
-  <html lang="en">
-    <head>
-      
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>Interactive Drift-Sense Prototype</title>
-      <meta name="description" content="Analyze nanoscale SEM wafer images to detect and correct navigation drift using dynamic AI-simulated pattern matching for precise semiconductor inspection." />
-      <meta name="robots" content="noindex, nofollow" />
-      <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
-      
-    </head>
+    <title>Interactive Drift-Sense Prototype</title>
+    <meta name="description" content="Analyze nanoscale SEM wafer images to detect and correct navigation drift using dynamic AI-simulated pattern matching for precise semiconductor inspection." />
+    <meta name="robots" content="noindex, nofollow" />
 
-    <body>
-      
-      <div id="root"></div>
-      <script type="module" src="/src/main.tsx"></script>
-      
-    </body>
-  </html>
-  
+    <!-- Theme / appearance -->
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+
+    <!-- Social previews -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Interactive Drift-Sense Prototype" />
+    <meta property="og:description" content="Detect and correct navigation drift in nanoscale SEM wafer images with AI-simulated pattern matching." />
+    <meta name="twitter:card" content="summary" />
+
+    <style>
+      html, body { height: 100%; margin: 0; }
+      #root { height: 100%; }
+      body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    </style>
+  </head>
+
+  <body>
+    <noscript>This prototype requires JavaScript to run. Please enable it in your browser.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
