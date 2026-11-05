@@ -2,7 +2,12 @@
 
 import * as React from "react";
 import * as ContextMenuPrimitive from "@radix-ui/react-context-menu";
-import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react";
+import {
+  CheckIcon,
+  ChevronRightIcon,
+  CircleIcon,
+  Loader2Icon,
+} from "lucide-react";
 
 import { cn } from "./utils";
 
@@ -72,7 +77,7 @@ function ContextMenuSubTrigger({
       {...props}
     >
       {children}
-      <ChevronRightIcon className="ml-auto" />
+      <ChevronRightIcon aria-hidden="true" className="ml-auto" />
     </ContextMenuPrimitive.SubTrigger>
   );
 }
@@ -85,7 +90,7 @@ function ContextMenuSubContent({
     <ContextMenuPrimitive.SubContent
       data-slot="context-menu-sub-content"
       className={cn(
-        "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-context-menu-content-transform-origin) overflow-hidden rounded-md border p-1 shadow-lg",
+        "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 motion-reduce:animate-none z-50 max-h-(--radix-context-menu-content-available-height) min-w-[8rem] origin-(--radix-context-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-lg",
         className,
       )}
       {...props}
@@ -102,7 +107,7 @@ function ContextMenuContent({
       <ContextMenuPrimitive.Content
         data-slot="context-menu-content"
         className={cn(
-          "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-context-menu-content-available-height) min-w-[8rem] origin-(--radix-context-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
+          "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 motion-reduce:animate-none z-50 max-h-(--radix-context-menu-content-available-height) min-w-[8rem] origin-(--radix-context-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
           className,
         )}
         {...props}
@@ -111,26 +116,88 @@ function ContextMenuContent({
   );
 }
 
+type ContextMenuItemProps = React.ComponentProps<
+  typeof ContextMenuPrimitive.Item
+> & {
+  inset?: boolean;
+  variant?: "default" | "destructive";
+  /** Leading icon */
+  icon?: React.ReactNode;
+  /** Shows a spinner and ignores selection */
+  loading?: boolean;
+};
+
 function ContextMenuItem({
   className,
   inset,
   variant = "default",
+  icon,
+  loading = false,
+  onSelect,
+  children,
   ...props
-}: React.ComponentProps<typeof ContextMenuPrimitive.Item> & {
-  inset?: boolean;
-  variant?: "default" | "destructive";
-}) {
+}: ContextMenuItemProps) {
   return (
     <ContextMenuPrimitive.Item
       data-slot="context-menu-item"
       data-inset={inset}
       data-variant={variant}
+      aria-busy={loading || undefined}
+      onSelect={(event) => {
+        if (loading) {
+          event.preventDefault();
+          return;
+        }
+        onSelect?.(event);
+      }}
       className={cn(
         "focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        loading && "opacity-70",
         className,
       )}
       {...props}
-    />
+    >
+      {loading ? (
+        <Loader2Icon
+          aria-hidden="true"
+          className="animate-spin motion-reduce:animate-none"
+        />
+      ) : (
+        icon
+      )}
+      {children}
+    </ContextMenuPrimitive.Item>
+  );
+}
+
+type ContextMenuCopyItemProps = Omit<ContextMenuItemProps, "onSelect"> & {
+  /** Text copied to the clipboard */
+  value: string;
+  onCopied?: () => void;
+  onCopyError?: (error: unknown) => void;
+};
+
+/** Item that copies `value` to the clipboard when selected */
+function ContextMenuCopyItem({
+  value,
+  onCopied,
+  onCopyError,
+  children = "Copy",
+  ...props
+}: ContextMenuCopyItemProps) {
+  const handleSelect = React.useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      onCopied?.();
+    } catch (error) {
+      onCopyError?.(error);
+    }
+  }, [value, onCopied, onCopyError]);
+
+  return (
+    <ContextMenuItem onSelect={handleSelect} {...props}>
+      {children}
+    </ContextMenuItem>
   );
 }
 
@@ -152,7 +219,7 @@ function ContextMenuCheckboxItem({
     >
       <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <ContextMenuPrimitive.ItemIndicator>
-          <CheckIcon className="size-4" />
+          <CheckIcon aria-hidden="true" className="size-4" />
         </ContextMenuPrimitive.ItemIndicator>
       </span>
       {children}
@@ -176,7 +243,7 @@ function ContextMenuRadioItem({
     >
       <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <ContextMenuPrimitive.ItemIndicator>
-          <CircleIcon className="size-2 fill-current" />
+          <CircleIcon aria-hidden="true" className="size-2 fill-current" />
         </ContextMenuPrimitive.ItemIndicator>
       </span>
       {children}
@@ -233,11 +300,28 @@ function ContextMenuShortcut({
   );
 }
 
+/**
+ * Tracks which item was right-clicked, so one menu can serve a whole list.
+ * Spread `bind(item)` on each row inside a single <ContextMenuTrigger>.
+ */
+function useContextMenuTarget<T>() {
+  const [target, setTarget] = React.useState<T | null>(null);
+
+  const bind = React.useCallback(
+    (item: T) => ({ onContextMenu: () => setTarget(item) }),
+    [],
+  );
+  const clear = React.useCallback(() => setTarget(null), []);
+
+  return { target, bind, clear };
+}
+
 export {
   ContextMenu,
   ContextMenuTrigger,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuCopyItem,
   ContextMenuCheckboxItem,
   ContextMenuRadioItem,
   ContextMenuLabel,
@@ -249,4 +333,6 @@ export {
   ContextMenuSubContent,
   ContextMenuSubTrigger,
   ContextMenuRadioGroup,
+  useContextMenuTarget,
 };
+export type { ContextMenuItemProps, ContextMenuCopyItemProps };
